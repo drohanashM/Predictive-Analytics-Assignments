@@ -1,0 +1,302 @@
+---
+title: "Problem Set 3"
+author: "Drohanash Majumdar, 704"
+date: "2026-02-07"
+output: word_document
+---
+
+**Problem to demonstrate the role of qualitative (nominal) predictors in addition to quantitative predictors in multiple linear regression**.
+
+Attach “Credits” data from R. 
+```{r}
+library(ISLR)
+data("Credit")
+head(Credit)
+summary(Credit)
+```
+
+Regress “balance” on
+
+(a) “gender” only.
+```{r}
+# Model (a): Balance ~ Gender
+model_a <- lm(Balance ~ Gender, data = Credit)
+summary(model_a)
+```
+
+(b) “gender” and “ethnicity” .
+```{r}
+# Model (b): Balance ~ Gender + Ethnicity
+model_b <- lm(Balance ~ Gender + Ethnicity, data = Credit)
+summary(model_b)
+```
+
+(c) “gender”, “ethnicity”, “income”.
+```{r}
+# Model (c): Balance ~ Gender + Ethnicity + Income
+model_c <- lm(Balance ~ Gender + Ethnicity + Income, data = Credit)
+summary(model_c)
+```
+
+(d) Output all the regressions in (a)-(c) in a single table using stargazer. Comment on the significant coefficients in each of the models.
+```{r}
+library(stargazer)
+stargazer(model_a, model_b, model_c, type = "html", out = "f1.html")
+```
+
+### Comments on Significant Coefficients:
+
+**Model (a) - Gender only:**
+
+- The intercept (509.803) represents the average balance for the reference group, which is males.
+- The coefficient on GenderFemale (19.733) means females have, on average, about $19.73 higher balance than males, but this effect is not statistically significant (large standard error, no stars).
+- R² = 0.0005, meaning gender explains virtually none of the variation in balance.
+
+**Model (b) - Gender and Ethnicity:**
+
+- The intercept (520.880) represents the average balance for the baseline group (Male & reference ethnicity).
+- GenderFemale (20.038) remains statistically insignificant. EthnicityAsian (-19.371) and EthnicityCaucasian (-12.653) are also statistically insignificant.
+- The model still has very low explanatory power (R² = 0.001).
+
+**Model (c) - Gender, Ethnicity, and Income:**
+
+- The intercept (230.029) represents the expected balance for the baseline group when income is zero.
+- Income (6.054) is highly statistically significant.
+  Interpretation: A one-unit increase in income is associated with an average increase of about $6.05 in balance, holding gender and ethnicity constant.
+- Gender and ethnicity variables remain statistically insignificant.
+- R² increases dramatically to 0.216, indicating that income explains about 21.6% of the variation in balance.
+
+(e) Explain how gender affects “balance” in each of the models (a)- (c) .
+```{r}
+gender_coef_a <- coef(model_a)["GenderFemale"]
+gender_coef_b <- coef(model_b)["GenderFemale"]
+gender_coef_c <- coef(model_c)["GenderFemale"]
+
+cat("Gender (Female) coefficient in Model (a):", round(gender_coef_a, 2), "\n")
+cat("Gender (Female) coefficient in Model (b):", round(gender_coef_b, 2), "\n")
+cat("Gender (Female) coefficient in Model (c):", round(gender_coef_c, 2), "\n")
+```
+
+**Interpretation:**
+
+- **Model (a):** Females have, on average, $19.73 higher balance than males, but this difference is not statistically significant.
+
+- **Model (b):** After controlling for ethnicity, females have $20.04 higher balance than males, and this difference remains statistically insignificant.
+
+- **Model (c):** After controlling for ethnicity and income, females have $24.34 higher balance than males, but this difference is still not statistically significant.
+
+**Conclusion:** Gender does not have a statistically significant effect on credit card balance in any of the three models, even after controlling for ethnicity and income.
+
+(f) Compare the average credit card balance of a male African with a male Caucasian on the basis of model (b).
+
+```{r}
+# Model (b) coefficients
+coef_b <- coef(model_b)
+
+balance_male_african <- coef_b["(Intercept)"]
+
+balance_male_caucasian <- coef_b["(Intercept)"] + coef_b["EthnicityCaucasian"]
+
+cat("Average Balance for Male African American:", 
+    round(balance_male_african, 2), "\n")
+
+cat("Average Balance for Male Caucasian:", 
+    round(balance_male_caucasian, 2), "\n")
+
+cat("Difference (Caucasian - African American):", 
+    round(balance_male_caucasian - balance_male_african, 2), "\n")
+
+```
+
+**Interpretation:** Based on Model (b), a male Caucasian is predicted to have $12.65 lower credit card balance compared to a male African American, on average. However, this difference is not statistically significant.
+
+(g) Compare the average credit card balance of a male African with a male Caucasian when each earns 100,000 dollars. For comparison, use the model in (c).
+
+```{r}
+# Model (c) coefficients
+coef_c <- coef(model_c)
+
+balance_male_african_100k <- coef_c["(Intercept)"] + 
+                             coef_c["Income"] * 100
+
+balance_male_caucasian_100k <- coef_c["(Intercept)"] + 
+                               coef_c["EthnicityCaucasian"] + 
+                               coef_c["Income"] * 100
+
+cat("Average Balance for Male African American (Income = $100k):", 
+    round(balance_male_african_100k, 2), "\n")
+
+cat("Average Balance for Male Caucasian (Income = $100k):", 
+    round(balance_male_caucasian_100k, 2), "\n")
+
+cat("Difference (Caucasian - African American):", 
+    round(balance_male_caucasian_100k - balance_male_african_100k, 2), "\n")
+
+```
+
+**Interpretation:** When both individuals earn \$100,000, a male Caucasian is predicted to have $6.45 higher balance compared to a male African American. The difference is almost entirely due to ethnicity, not income.
+
+(h) Compare and comment on the answers in (f) and (g)
+```{r}
+diff_f <- balance_male_caucasian - balance_male_african
+diff_g <- balance_male_caucasian_100k - balance_male_african_100k
+
+cat("Difference in (f):", round(diff_f, 2), "\n")
+cat("Difference in (g):", round(diff_g, 2), "\n")
+cat("Change in difference:", round(diff_g - diff_f, 2), "\n")
+```
+
+**Comments:**
+
+1. **Similar Differences:** Both models predict very similar differences between male Caucasians and male African Americans (approximately −\$12.65 to −$12.73), reflecting the ethnicity coefficient in each model.
+
+2. **Income Effect:** The inclusion of income in Model (c) does not substantially change the ethnicity effect because the model is additive. Income shifts predicted balances for all groups equally, so the gap between ethnic groups remains essentially the ethnicity coefficient.
+
+3. **Statistical Significance:** Neither ethnicity nor gender differences are statistically significant in either model, as indicated by the absence of significance stars and large standard errors relative to the coefficients.
+
+4. **Income Dominates:** In Model (c), income is the only statistically significant predictor. However, it explains about 21.6% of the variation in balance (R² = 0.216), While income substantially improves explanatory power compared to Models (a) and (b), a large portion of the variation in balance remains unexplained.
+
+(i) Based on the model in (c), predict the credit card balance of a female Asian whose income is 2000,000 dollars.
+```{r}
+
+new_data <- data.frame(
+  Gender = "Female",
+  Ethnicity = "Asian",
+  Income = 200  
+)
+
+# Predict using model (c)
+predicted_balance <- predict(model_c, newdata = new_data, interval = "confidence")
+
+cat("Predicted Balance for Female Asian with $200,000 income:\n")
+cat("Point Estimate:", round(predicted_balance[1], 2), "\n")
+cat("95% Confidence Interval: [", round(predicted_balance[2], 2), ",", 
+    round(predicted_balance[3], 2), "]\n")
+```
+
+**Interpretation:** A female Asian individual with an income of $200,000 is predicted to have a credit card balance of approximately $`r round(predicted_balance[1], 2)`, with a 95% confidence interval of [`r round(predicted_balance[2], 2)`, `r round(predicted_balance[3], 2)`].
+
+(j) Check the goodness of fit of the different models in (a) -(c) in terms of adjusted R2. Which model would you prefer?
+```{r}
+get_fit_stats <- function(model) {
+  adj_r_squared <- summary(model)$adj.r.squared
+  
+  return(c(Adj_R2 = adj_r_squared))
+}
+
+fit_comparison <- data.frame(
+  Model_a = get_fit_stats(model_a),
+  Model_b = get_fit_stats(model_b),
+  Model_c = get_fit_stats(model_c)
+)
+
+print(round(fit_comparison, 4))
+
+fit_comparison_long <- data.frame(
+  Metric = rownames(fit_comparison),
+  Model_a = fit_comparison$Model_a,
+  Model_b = fit_comparison$Model_b,
+  Model_c = fit_comparison$Model_c
+)
+
+knitr::kable(
+  fit_comparison_long, 
+  col.names = c("Metric", "Model (a)", "Model (b)", "Model (c)"),
+  caption = "Model Comparison: Adjusted R-squared",
+  digits = 4
+)
+
+```
+
+### Model Selection Recommendation:
+
+**Model (c) is clearly the preferred model** based on the following criteria:
+
+1. **Adjusted R²:** Model (c) has the highest adjusted R² (0.2078), explaining 20.78% of variance compared to essentially 0% for models (a) and (b).
+
+**Problem to demonstrate the impact of ignoring interaction term in multiple linear regression**
+
+```{r}
+set.seed(123)
+
+n <- 100  # sample size
+R <- 1000  # number of repetitions
+
+config1 <- c(beta0 = -2.5, beta1 = 1.2, beta2 = 2.3, beta3 = 0.001)
+config2 <- c(beta0 = -2.5, beta1 = 1.2, beta2 = 2.3, beta3 = 3.1)
+```
+
+Consider a simulation setting where the data is generated as follows:
+
+**Step 1**: Generate $x_{1i}$ from Normal(0,1) distribution, i = 1, 2, .., n
+
+**Step 2**: Generate $x_{2i}$ from Bernoulli (0.3) distribution, i = 1, 2, .., n
+
+**Step 3**: Generate $ε_i$ from Normal(0,1) and hence generate the response $y_i =β_0 + β_1x_{1i} + β_2x_{2i} + β_3(x_{1i} × x_{2i}) + ε_i$, i = 1, 2, , , n.
+
+**Step 4**: Run two separate multiple linear regressions (i) using the model in Step 3 and (ii) using the model in Step 3 without the interaction term.
+Repeat Steps 1-4 , R = 1000 times. At each simulation compute the MSE for
+the correct model (i.e. model with the interaction term) and the naive model (i.e. the model without the interaction term). Finally find the average MSE’s for each model. From the output, demonstrate the impact of ignoring the interaction term.
+
+Carry out the analysis for n = 100 and the following parametric configurations:
+($β_0$, $β_1$, $β_2$, $β_3$) = (−2.5, 1.2, 2.3, 0.001) , (-2.5, 1.2. 2.3, 3.1). Set seed as 123.
+```{r}
+set.seed(123)
+
+n <- 100
+R <- 1000
+
+param_list <- list(
+  c(-2.5, 1.2, 2.3, 0.001),
+  c(-2.5, 1.2, 2.3, 3.1)
+)
+
+run_simulation <- function(beta) {
+  
+  beta0 <- beta[1]
+  beta1 <- beta[2]
+  beta2 <- beta[3]
+  beta3 <- beta[4]
+  
+  mse_correct <- numeric(R)
+  mse_naive   <- numeric(R)
+  
+  for (r in 1:R) {
+    
+    x1 <- rnorm(n, 0, 1)
+    x2 <- rbinom(n, 1, 0.3)
+    
+    eps <- rnorm(n, 0, 1)
+    y <- beta0 + beta1*x1 + beta2*x2 + beta3*(x1*x2) + eps
+    
+    model_correct <- lm(y ~ x1 * x2)
+    
+    model_naive <- lm(y ~ x1 + x2)
+    
+    mse_correct[r] <- mean((y - predict(model_correct))^2)
+    mse_naive[r]   <- mean((y - predict(model_naive))^2)
+  }
+  
+  return(c(
+    Avg_MSE_Correct = mean(mse_correct),
+    Avg_MSE_Naive   = mean(mse_naive)
+  ))
+}
+
+results_1 <- run_simulation(param_list[[1]])
+results_2 <- run_simulation(param_list[[2]])
+
+results <- rbind(
+  "beta3 = 0.001 (≈ no interaction)" = results_1,
+  "beta3 = 3.1 (strong interaction)" = results_2
+)
+
+round(results, 4)
+
+```
+
+**Interpretation:** When the true interaction effect is essentially zero, omitting it barely hurts predictive accuracy. The naive additive model performs almost as well as the correctly specified model.
+
+When the interaction truly matters, ignoring it leads to severe model misspecification and dramatically higher prediction error.
+
+
